@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.2] - 2026-01-11
+
+### Fixed
+- **Transfer**: Memperbaiki format input saldo (ribuan) dan error insert database (menghapus kolom invalid `type`, handling kategori otomatis).
+- **UI**: Standarisasi styling tombol kembali.
+
 ## [1.1.1] - 2026-01-11
 
 ### Fixed

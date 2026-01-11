@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
 import { supabase } from '@/lib/supabase';
-import { ArrowLeft, ArrowRightLeft, Loader2, Wallet } from 'lucide-react';
+import { ArrowLeft, ArrowRightLeft, Loader2 } from 'lucide-react';
 
 export default function TransferPage() {
     const { user, wallets } = useAuth();
@@ -25,6 +25,22 @@ export default function TransferPage() {
         }
     }, [wallets]);
 
+    // Helpers for currency formatting
+    const formatNumber = (value: string) => {
+        const num = value.replace(/\D/g, '');
+        return num.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    };
+
+    const parseFormattedNumber = (value: string) => {
+        return value.replace(/\./g, '');
+    };
+
+    const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const val = e.target.value;
+        const plain = parseFormattedNumber(val);
+        setAmount(formatNumber(plain));
+    };
+
     const handleTransfer = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
@@ -42,7 +58,7 @@ export default function TransferPage() {
             return;
         }
 
-        const numericAmount = parseFloat(amount.replace(/\./g, '').replace(',', '.'));
+        const numericAmount = parseFloat(parseFormattedNumber(amount));
         if (isNaN(numericAmount) || numericAmount <= 0) {
             setError('Jumlah transfer tidak valid');
             setLoading(false);
@@ -57,44 +73,74 @@ export default function TransferPage() {
         }
 
         try {
-            // 1. Get Transfer Categories (or create if not exist - simplified for now, uses generic or null)
-            // Ideally we should have System Categories. For now, let's leave category_id null or fetch a 'Transfer' category.
-            // Let's try to find a 'Transfer' category, if not create one? No, too complex.
-            // We'll leave category_id null for now or user can select?
-            // Better: Create 2 transactions.
+            // 1. Get or Create Categories
+            // Expense Category (Transfer Keluar)
+            let expenseCatId;
+            const { data: expCat } = await supabase
+                .from('categories')
+                .select('id')
+                .eq('user_id', user.id)
+                .eq('type', 'expense')
+                .ilike('name', 'Transfer Keluar')
+                .maybeSingle();
 
-            // 1. Transaction Out (Source)
+            if (expCat) {
+                expenseCatId = expCat.id;
+            } else {
+                const { data: newExp, error: newExpErr } = await supabase
+                    .from('categories')
+                    .insert({ user_id: user.id, name: 'Transfer Keluar', type: 'expense', icon: 'ArrowRightLeft' })
+                    .select()
+                    .single();
+                if (!newExpErr && newExp) expenseCatId = newExp.id;
+            }
+
+            // Income Category (Transfer Masuk)
+            let incomeCatId;
+            const { data: incCat } = await supabase
+                .from('categories')
+                .select('id')
+                .eq('user_id', user.id)
+                .eq('type', 'income')
+                .ilike('name', 'Transfer Masuk')
+                .maybeSingle();
+
+            if (incCat) {
+                incomeCatId = incCat.id;
+            } else {
+                const { data: newInc, error: newIncErr } = await supabase
+                    .from('categories')
+                    .insert({ user_id: user.id, name: 'Transfer Masuk', type: 'income', icon: 'ArrowRightLeft' })
+                    .select()
+                    .single();
+                if (!newIncErr && newInc) incomeCatId = newInc.id;
+            }
+
+            // 2. Transaction Out (Source - Expense)
             const { error: txOutError } = await supabase.from('transactions').insert({
                 user_id: user.id,
                 wallet_id: sourceWalletId,
+                category_id: expenseCatId,
                 amount: numericAmount,
-                type: 'expense',
                 note: `Transfer ke ${wallets.find(w => w.id === targetWalletId)?.name}: ${note}`,
                 date: new Date().toISOString(),
-                // category_id: ... (skip for simplicity, or handle later)
             });
 
             if (txOutError) throw txOutError;
 
-            // 2. Transaction In (Target)
+            // 3. Transaction In (Target - Income)
             const { error: txInError } = await supabase.from('transactions').insert({
                 user_id: user.id,
                 wallet_id: targetWalletId,
+                category_id: incomeCatId,
                 amount: numericAmount,
-                type: 'income',
                 note: `Transfer dari ${wallets.find(w => w.id === sourceWalletId)?.name}: ${note}`,
                 date: new Date().toISOString(),
             });
 
             if (txInError) throw txInError;
 
-            // 3. Update Balances
-            const { error: balOutError } = await supabase.rpc('decrement_balance', {
-                wallet_id: sourceWalletId,
-                amount: numericAmount
-            }); // If rpc doesn't exist, use manual update. Let's assume manual update for safety if RPC not set.
-
-            // Fallback manual update since we don't know if RPC exists
+            // 4. Update Balances (Manual update to be safe)
             const { error: updateSourceError } = await supabase
                 .from('wallets')
                 .update({ balance: (sourceWallet!.balance || 0) - numericAmount })
@@ -110,21 +156,17 @@ export default function TransferPage() {
 
             router.push('/dashboard');
         } catch (err: any) {
+            console.error(err);
             setError(err.message || 'Terjadi kesalahan saat transfer');
         } finally {
             setLoading(false);
         }
     };
 
-    const formatInputCurrency = (val: string) => {
-        // Simple formatter for input display
-        return val;
-    };
-
     return (
         <div className="min-h-screen pb-20 bg-background">
             <header className="px-4 py-4 flex items-center gap-4 border-b border-border bg-background/50 backdrop-blur sticky top-0 z-10">
-                <button onClick={() => router.back()} className="p-2 rounded-full hover:bg-background-secondary">
+                <button onClick={() => router.back()} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-background-secondary transition-all active:scale-95">
                     <ArrowLeft className="w-6 h-6" />
                 </button>
                 <h1 className="text-xl font-bold">Transfer Saldo</h1>
@@ -143,8 +185,8 @@ export default function TransferPage() {
                                     onClick={() => setSourceWalletId(w.id)}
                                     disabled={w.id === targetWalletId}
                                     className={`p-3 rounded-xl border flex items-center justify-between transition-all ${sourceWalletId === w.id
-                                            ? 'border-primary bg-primary/10'
-                                            : 'border-border bg-background-secondary opacity-80 hover:opacity-100'
+                                        ? 'border-primary bg-primary/10'
+                                        : 'border-border bg-background-secondary opacity-80 hover:opacity-100'
                                         } ${w.id === targetWalletId ? 'opacity-30 cursor-not-allowed' : ''}`}
                                 >
                                     <div className="flex items-center gap-3">
@@ -179,8 +221,8 @@ export default function TransferPage() {
                                     onClick={() => setTargetWalletId(w.id)}
                                     disabled={w.id === sourceWalletId}
                                     className={`p-3 rounded-xl border flex items-center justify-between transition-all ${targetWalletId === w.id
-                                            ? 'border-success bg-success/10'
-                                            : 'border-border bg-background-secondary opacity-80 hover:opacity-100'
+                                        ? 'border-success bg-success/10'
+                                        : 'border-border bg-background-secondary opacity-80 hover:opacity-100'
                                         } ${w.id === sourceWalletId ? 'opacity-30 cursor-not-allowed' : ''}`}
                                 >
                                     <div className="flex items-center gap-3">
@@ -204,9 +246,10 @@ export default function TransferPage() {
                         <div className="relative">
                             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-fore/40 font-bold">Rp</span>
                             <input
-                                type="number"
+                                type="text"
+                                inputMode="numeric"
                                 value={amount}
-                                onChange={(e) => setAmount(e.target.value)}
+                                onChange={handleAmountChange}
                                 placeholder="0"
                                 className="w-full bg-background-secondary border border-border rounded-xl py-3 pl-12 pr-4 text-xl font-bold focus:outline-none focus:border-primary transition-colors"
                             />
