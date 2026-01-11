@@ -4,8 +4,14 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { ArrowLeft, LogOut, User, Trash2, Download, Loader2, Key, Mail, Lock, AlertTriangle, Eye, EyeOff } from 'lucide-react';
+import { ArrowLeft, LogOut, User, Trash2, Download, Loader2, Key, Mail, Lock, AlertTriangle, Eye, EyeOff, Monitor, Smartphone } from 'lucide-react';
 import { APP_CONFIG } from '@/lib/config';
+
+function MonitorOrMobile({ ua }: { ua: string }) {
+    if (ua.indexOf("Mobi") > -1) return <Smartphone className="w-5 h-5 text-primary" />;
+    return <Monitor className="w-5 h-5 text-primary" />;
+}
+
 
 export default function SettingsPage() {
     const { user, signOut, wallets } = useAuth();
@@ -127,6 +133,31 @@ export default function SettingsPage() {
         }
     };
 
+    // Device detection
+    const [deviceInfo, setDeviceInfo] = useState<string>('');
+
+    useEffect(() => {
+        const ua = window.navigator.userAgent;
+        let browser = "Unknown Browser";
+        let os = "Unknown OS";
+
+        if (ua.indexOf("Firefox") > -1) browser = "Mozilla Firefox";
+        else if (ua.indexOf("SamsungBrowser") > -1) browser = "Samsung Internet";
+        else if (ua.indexOf("Opera") > -1 || ua.indexOf("OPR") > -1) browser = "Opera";
+        else if (ua.indexOf("Trident") > -1) browser = "Microsoft Internet Explorer";
+        else if (ua.indexOf("Edge") > -1) browser = "Microsoft Edge";
+        else if (ua.indexOf("Chrome") > -1) browser = "Google Chrome";
+        else if (ua.indexOf("Safari") > -1) browser = "Apple Safari";
+
+        if (ua.indexOf("Win") > -1) os = "Windows";
+        else if (ua.indexOf("Mac") > -1) os = "MacOS";
+        else if (ua.indexOf("Linux") > -1) os = "Linux";
+        else if (ua.indexOf("Android") > -1) os = "Android";
+        else if (ua.indexOf("like Mac") > -1) os = "iOS";
+
+        setDeviceInfo(`${os} • ${browser}`);
+    }, []);
+
     return (
         <div className="min-h-screen pb-24">
             <header className="px-4 pt-12 pb-6 flex items-center gap-4">
@@ -154,19 +185,24 @@ export default function SettingsPage() {
                             <p className="text-fore/60 text-sm truncate">{user?.email}</p>
                             <div className="flex items-center gap-1 mt-1">
                                 <span className="w-2 h-2 bg-success rounded-full animate-pulse"></span>
-                                <p className="text-xs text-fore/40">Sesi Aktif</p>
+                                <p className="text-xs text-fore/40">Sesi Aktif Saat Ini</p>
                             </div>
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2 text-xs text-fore/40 bg-background/50 p-3 rounded-lg">
-                        <div>
-                            <p className="font-semibold text-fore/60">Last Sign In:</p>
-                            <p>{user?.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleString('id-ID') : '-'}</p>
+                    <div className="bg-background/50 p-4 rounded-xl space-y-3">
+                        <div className="flex items-start gap-3">
+                            <div className="mt-1">
+                                <MonitorOrMobile ua={typeof window !== 'undefined' ? window.navigator.userAgent : ''} />
+                            </div>
+                            <div>
+                                <p className="font-semibold text-sm">{deviceInfo}</p>
+                                <p className="text-xs text-fore/40">Terakhir aktif: {user?.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleString('id-ID') : 'Baru saja'}</p>
+                                <p className="text-xs text-success mt-1">✓ Perangkat Ini</p>
+                            </div>
                         </div>
-                        <div>
-                            <p className="font-semibold text-fore/60">Provider:</p>
-                            <p>{user?.app_metadata?.provider || 'Email'}</p>
+                        <div className="border-t border-border/50 pt-2 text-xs text-fore/40">
+                            Masuk via {user?.app_metadata?.provider || 'Email'}
                         </div>
                     </div>
 
@@ -176,8 +212,11 @@ export default function SettingsPage() {
                         className="w-full py-2 px-4 rounded-lg bg-danger/10 text-danger text-sm font-medium hover:bg-danger/20 transition-colors flex items-center justify-center gap-2"
                     >
                         {loadingLogoutAll ? <Loader2 className="w-4 h-4 animate-spin" /> : <LogOut className="w-4 h-4" />}
-                        Keluar dari Semua Perangkat
+                        Logout dari Semua Perangkat
                     </button>
+                    <p className="text-[10px] text-center text-fore/40">
+                        Ini akan mengeluarkan akun Anda dari semua perangkat lain yang sedang login.
+                    </p>
                 </div>
 
                 {/* Account Actions */}
@@ -198,15 +237,15 @@ export default function SettingsPage() {
                         {showChangeEmail && (
                             <form onSubmit={handleUpdateEmail} className="p-4 bg-background/30 animate-slideDown">
                                 <div className="space-y-3">
-                                    <div className="input-wrapper">
-                                        <Mail className="w-4 h-4 text-fore/40 absolute left-3 top-3.5" />
+                                    <div className="input-wrapper relative">
+                                        <Mail className="w-5 h-5 text-fore/40 absolute left-4 top-1/2 -translate-y-1/2" />
                                         <input
                                             type="email"
                                             placeholder="Email Baru"
                                             value={newEmail}
                                             onChange={e => setNewEmail(e.target.value)}
                                             required
-                                            className="input-field pl-10"
+                                            className="input-field pl-12"
                                         />
                                     </div>
                                     <button type="submit" disabled={loadingEmail} className="btn btn-primary w-full text-sm">
@@ -234,33 +273,33 @@ export default function SettingsPage() {
                             <form onSubmit={handleUpdatePassword} className="p-4 bg-background/30 animate-slideDown">
                                 <div className="space-y-3">
                                     <div className="input-wrapper relative">
-                                        <Lock className="w-4 h-4 text-fore/40 absolute left-3 top-3.5" />
+                                        <Lock className="w-5 h-5 text-fore/40 absolute left-4 top-1/2 -translate-y-1/2" />
                                         <input
                                             type={showNewPassword ? "text" : "password"}
                                             placeholder="Password Baru"
                                             value={newPassword}
                                             onChange={e => setNewPassword(e.target.value)}
                                             required
-                                            className="input-field pl-10 pr-10"
+                                            className="input-field pl-12 pr-10"
                                             minLength={6}
                                         />
                                         <button
                                             type="button"
                                             onClick={() => setShowNewPassword(!showNewPassword)}
-                                            className="absolute right-3 top-3 text-fore/40 hover:text-fore"
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-fore/40 hover:text-fore"
                                         >
                                             {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                                         </button>
                                     </div>
-                                    <div className="input-wrapper">
-                                        <Lock className="w-4 h-4 text-fore/40 absolute left-3 top-3.5" />
+                                    <div className="input-wrapper relative">
+                                        <Lock className="w-5 h-5 text-fore/40 absolute left-4 top-1/2 -translate-y-1/2" />
                                         <input
                                             type="password"
                                             placeholder="Konfirmasi Password"
                                             value={confirmPassword}
                                             onChange={e => setConfirmPassword(e.target.value)}
                                             required
-                                            className="input-field pl-10"
+                                            className="input-field pl-12"
                                             minLength={6}
                                         />
                                     </div>

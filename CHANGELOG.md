@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.1] - 2026-01-11
+
+### Improved
+- **Settings**: Menambahkan informasi deteksi perangkat (Browser & OS) pada info sesi.
+- **UI**: Memperbaiki alignment ikon pada form ganti email/password agar rapi di tengah.
+
 ## [1.2.0] - 2026-01-11
 
 ### Added
