@@ -5,6 +5,7 @@ import { useAuth } from '@/components/AuthProvider';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { ArrowLeft, LogOut, User, Trash2, Download, Loader2 } from 'lucide-react';
+import { APP_CONFIG } from '@/lib/config';
 
 export default function SettingsPage() {
     const { user, signOut, wallets } = useAuth();
@@ -172,7 +173,7 @@ export default function SettingsPage() {
 
                 {/* App Version */}
                 <p className="text-center text-fore/40 text-sm mt-8">
-                    MyFinance v1.0.0
+                    {APP_CONFIG.name} v{APP_CONFIG.version}
                 </p>
             </div>
         </div>
