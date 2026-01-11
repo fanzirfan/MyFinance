@@ -158,7 +158,9 @@ export default function EditWalletPage() {
                             Nama Wallet
                         </label>
                         <div className="input-wrapper">
-                            <Tag className="input-icon" />
+                            <div className="input-icon">
+                                <Tag className="w-5 h-5" />
+                            </div>
                             <input
                                 type="text"
                                 value={name}

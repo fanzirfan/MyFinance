@@ -35,12 +35,12 @@ export default function ManageWalletsPage() {
         <div className="min-h-screen pb-20 bg-background">
             <header className="px-4 py-4 flex items-center justify-between border-b border-border bg-background/50 backdrop-blur sticky top-0 z-10">
                 <div className="flex items-center gap-4">
-                    <button onClick={() => router.back()} className="p-2 rounded-full hover:bg-background-secondary">
+                    <button onClick={() => router.back()} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-background-secondary transition-all active:scale-95">
                         <ArrowLeft className="w-6 h-6" />
                     </button>
                     <h1 className="text-xl font-bold">Kelola Wallet</h1>
                 </div>
-                <Link href="/wallets/new" className="p-2 bg-primary/10 text-primary rounded-full hover:bg-primary/20">
+                <Link href="/wallets/new" className="w-10 h-10 flex items-center justify-center bg-primary/10 text-primary rounded-full hover:bg-primary/20 transition-all active:scale-95">
                     <Plus className="w-6 h-6" />
                 </Link>
             </header>
@@ -69,14 +69,14 @@ export default function ManageWalletsPage() {
                             <div className="flex items-center gap-2">
                                 <Link
                                     href={`/wallets/${w.id}/edit`}
-                                    className="p-2 text-fore/60 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                                    className="w-10 h-10 flex items-center justify-center rounded-xl text-fore/60 hover:text-primary hover:bg-primary/10 transition-all active:scale-95"
                                 >
                                     <Pencil className="w-5 h-5" />
                                 </Link>
                                 <button
                                     onClick={() => handleDelete(w.id, w.name)}
                                     disabled={deletingId === w.id}
-                                    className="p-2 text-fore/60 hover:text-danger hover:bg-danger/10 rounded-lg transition-colors"
+                                    className="w-10 h-10 flex items-center justify-center rounded-xl text-fore/60 hover:text-danger hover:bg-danger/10 transition-all active:scale-95 disabled:opacity-50"
                                 >
                                     {deletingId === w.id ? (
                                         <div className="w-5 h-5 border-2 border-danger border-t-transparent rounded-full animate-spin" />

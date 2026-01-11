@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.1] - 2026-01-11
+
+### Fixed
+- **UI Icons**: Memperbaiki alignment icon pada input form dan action buttons.
+- **Plus Button**: Memperbaiki ukuran dan centering tombol tambah di halaman Manage Wallets.
+- **Input Password**: Menambahkan fitur toggle show/hide password pada halaman Login dan Register.
+- **Config**: Sinkronisasi versi aplikasi di halaman Settings dan Footer.
+
 ## [1.1.0] - 2026-01-11
 
 ### Added
