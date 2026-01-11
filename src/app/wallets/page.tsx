@@ -35,7 +35,7 @@ export default function ManageWalletsPage() {
         <div className="min-h-screen pb-20 bg-background">
             <header className="px-4 py-4 flex items-center justify-between border-b border-border bg-background/50 backdrop-blur sticky top-0 z-10">
                 <div className="flex items-center gap-4">
-                    <button onClick={() => router.back()} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-background-secondary transition-all active:scale-95">
+                    <button onClick={() => router.push('/dashboard')} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-background-secondary transition-all active:scale-95">
                         <ArrowLeft className="w-6 h-6" />
                     </button>
                     <h1 className="text-xl font-bold">Kelola Wallet</h1>
