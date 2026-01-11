@@ -11,10 +11,13 @@ import {
     Wallet as WalletIcon,
     Settings,
     LogOut,
-    RefreshCw
+    RefreshCw,
+    ArrowRightLeft,
+    WalletCards
 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { getCategoryIcon } from '@/lib/categoryIcons';
+import { APP_CONFIG } from '@/lib/config';
 
 const EXPENSE_COLORS = ['#EF4444', '#F97316', '#EC4899', '#8B5CF6', '#E11D48', '#DC2626'];
 const INCOME_COLORS = ['#10B981', '#22C55E', '#14B8A6', '#34D399', '#059669', '#047857'];
@@ -251,6 +254,28 @@ export default function DashboardPage() {
                         <span className="whitespace-nowrap">Tambah</span>
                     </button>
                 </div>
+
+                {/* Quick Actions */}
+                <div className="grid grid-cols-2 gap-3 mt-4">
+                    <button
+                        onClick={() => router.push('/transfer')}
+                        className="card p-3 flex items-center justify-center gap-2 hover:bg-background-secondary transition-colors"
+                    >
+                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                            <ArrowRightLeft className="w-4 h-4" />
+                        </div>
+                        <span className="font-semibold text-sm">Transfer</span>
+                    </button>
+                    <button
+                        onClick={() => router.push('/wallets')}
+                        className="card p-3 flex items-center justify-center gap-2 hover:bg-background-secondary transition-colors"
+                    >
+                        <div className="w-8 h-8 rounded-full bg-secondary/10 flex items-center justify-center text-secondary">
+                            <WalletCards className="w-4 h-4" />
+                        </div>
+                        <span className="font-semibold text-sm">Kelola Wallet</span>
+                    </button>
+                </div>
             </header>
 
             {/* Period Filter */}
@@ -481,6 +506,12 @@ export default function DashboardPage() {
             >
                 <Plus className="w-8 h-8" />
             </button>
+            {/* Footer */}
+            {/* Footer */}
+            <footer className="mt-8 pt-8 pb-20 text-center text-fore/40 text-xs border-t border-muted mx-6">
+                <p>&copy; {APP_CONFIG.year} {APP_CONFIG.name} v{APP_CONFIG.version}</p>
+                <p className="mt-1">Created by {APP_CONFIG.author}</p>
+            </footer>
         </div>
     );
 }

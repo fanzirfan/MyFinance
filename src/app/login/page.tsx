@@ -7,6 +7,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Mail, Lock, ArrowRight, Loader2 } from 'lucide-react';
 import Recaptcha from '@/components/Recaptcha';
+import { APP_CONFIG } from '@/lib/config';
 
 export default function LoginPage() {
     const [email, setEmail] = useState('');
@@ -131,7 +132,7 @@ export default function LoginPage() {
 
                 {/* Footer */}
                 <p className="text-center mt-8 text-fore/40 text-xs">
-                    MyFinance v1.0.0 • © {new Date().getFullYear()}
+                    {APP_CONFIG.name} v{APP_CONFIG.version} • © {APP_CONFIG.year}
                 </p>
             </div>
         </div>
