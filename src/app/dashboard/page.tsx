@@ -217,8 +217,8 @@ export default function DashboardPage() {
                     <button
                         onClick={() => setSelectedWalletId('all')}
                         className={`flex-shrink-0 px-4 py-2 rounded-full border transition-all ${selectedWalletId === 'all'
-                                ? 'bg-primary text-white border-primary'
-                                : 'bg-background-secondary border-border text-fore/60'
+                            ? 'bg-primary text-white border-primary'
+                            : 'bg-background-secondary border-border text-fore/60'
                             }`}
                     >
                         Semua
@@ -228,8 +228,8 @@ export default function DashboardPage() {
                             key={wallet.id}
                             onClick={() => setSelectedWalletId(wallet.id)}
                             className={`flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-full border transition-all ${selectedWalletId === wallet.id
-                                    ? 'bg-secondary/20 border-secondary'
-                                    : 'bg-background-secondary border-border'
+                                ? 'bg-secondary/20 border-secondary'
+                                : 'bg-background-secondary border-border'
                                 }`}
                         >
                             <div
@@ -313,7 +313,7 @@ export default function DashboardPage() {
                                             ))}
                                         </Pie>
                                         <Tooltip
-                                            formatter={(value: number) => formatCurrency(value)}
+                                            formatter={(value: any) => formatCurrency(Number(value))}
                                             contentStyle={{
                                                 backgroundColor: '#1c1c1f',
                                                 border: '1px solid #3f3f46',
@@ -367,7 +367,7 @@ export default function DashboardPage() {
                                             ))}
                                         </Pie>
                                         <Tooltip
-                                            formatter={(value: number) => formatCurrency(value)}
+                                            formatter={(value: any) => formatCurrency(Number(value))}
                                             contentStyle={{
                                                 backgroundColor: '#1c1c1f',
                                                 border: '1px solid #3f3f46',
