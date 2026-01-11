@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.0] - 2026-01-11
+
+### Added
+- **PWA Support**: Aplikasi sekarang mendukung Progressive Web App (Installable & Offline Mode).
+- **Settings**: Menambahkan fitur Ganti Email, Ganti Password, dan Info Sesi Aktif.
+- **Security**: Menambahkan fitur "Keluar dari Semua Perangkat" (Global Logout).
+
+### Fixed
+- **Authentication**: Memperbaiki masalah sesi logout sendiri dengan implementasi Middleware berbasis Cookie (`@supabase/ssr`).
+- **Login**: Memperbaiki isu login loop dengan menyinkronkan autentikasi client-side dan server-side.
+
 ## [1.1.2] - 2026-01-11
 
 ### Fixed
