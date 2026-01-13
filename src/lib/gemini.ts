@@ -21,7 +21,7 @@ Tugas: Parse pesan pengguna dan ekstrak informasi transaksi dalam format JSON.
 Rules:
 1. amount: angka dalam Rupiah (konversi k/rb = ribu, jt = juta)
 2. wallet: nama dompet/bank/e-wallet yang disebutkan
-3. category: kategori transaksi (Makan, Transport, Belanja, Gaji, Transfer, dll)
+3. category: kategori transaksi (Makan, Transport, Belanja, Gaji, Transfer, Hiburan, dll)
 4. type: "expense" untuk pengeluaran, "income" untuk pemasukan (gaji, terima uang, dll)
 5. note: catatan tambahan dari pesan
 
@@ -29,7 +29,7 @@ Contoh:
 - "600k BCA buat makan" → {"amount":600000,"wallet":"BCA","category":"Makan","type":"expense","note":"makan"}
 - "Gaji masuk 5jt Mandiri" → {"amount":5000000,"wallet":"Mandiri","category":"Gaji","type":"income","note":"gaji masuk"}
 - "Transport ojol 15rb GoPay" → {"amount":15000,"wallet":"GoPay","category":"Transport","type":"expense","note":"ojol"}
-- "Terima transfer 500k BCA dari teman" → {"amount":500000,"wallet":"BCA","category":"Transfer","type":"income","note":"dari teman"}
+- "100k Jago Langganan Vidio" → {"amount":100000,"wallet":"Jago","category":"Hiburan","type":"expense","note":"Langganan Vidio"}
 
 PENTING: Balas HANYA dengan JSON valid, tanpa markdown atau teks lain.`;
 
@@ -37,7 +37,8 @@ export async function parseTransaction(message: string, walletNames: string[]): 
     const apiKey = process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
-        return { success: false, error: 'GEMINI_API_KEY not configured' };
+        console.error('GEMINI_API_KEY not configured');
+        return { success: false, error: 'API key tidak dikonfigurasi' };
     }
 
     const walletContext = walletNames.length > 0
@@ -61,18 +62,23 @@ export async function parseTransaction(message: string, walletNames: string[]): 
             }),
         });
 
+        const responseText = await response.text();
+        console.log('Gemini raw response:', responseText);
+
         if (!response.ok) {
-            const errorText = await response.text();
-            console.error('Gemini API error:', errorText);
-            return { success: false, error: 'Gagal memproses pesan' };
+            console.error('Gemini API error:', response.status, responseText);
+            return { success: false, error: 'Gagal menghubungi AI' };
         }
 
-        const data = await response.json();
+        const data = JSON.parse(responseText);
         const textContent = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
         if (!textContent) {
+            console.error('No text content in response:', data);
             return { success: false, error: 'Tidak ada respons dari AI' };
         }
+
+        console.log('Gemini text response:', textContent);
 
         // Clean the response - remove markdown code blocks if present
         let cleanJson = textContent.trim();
@@ -84,6 +90,7 @@ export async function parseTransaction(message: string, walletNames: string[]): 
 
         // Validate required fields
         if (!parsed.amount || !parsed.wallet || !parsed.category || !parsed.type) {
+            console.error('Incomplete transaction data:', parsed);
             return { success: false, error: 'Data transaksi tidak lengkap' };
         }
 
