@@ -1,8 +1,9 @@
 export interface ParsedTransaction {
     amount: number;
-    wallet: string;
+    wallet: string; // Source wallet or Target wallet for check balance
+    to_wallet?: string; // Target wallet (for transfers)
     category: string;
-    type: 'income' | 'expense';
+    type: 'income' | 'expense' | 'transfer' | 'check_balance';
     note: string | null;
 }
 
@@ -14,102 +15,98 @@ export interface GeminiResponse {
 
 const GEMINI_API = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
 
-const SYSTEM_PROMPT = `Kamu adalah asisten keuangan yang mengekstrak informasi transaksi dari pesan bahasa Indonesia.
-
-Tugas: Parse pesan pengguna dan ekstrak informasi transaksi dalam format JSON.
-
-Rules:
-1. amount: angka dalam Rupiah (konversi k/rb = ribu, jt = juta)
-2. wallet: nama dompet/bank/e-wallet yang disebutkan
-3. category: kategori transaksi (Makan, Transport, Belanja, Gaji, Transfer, Hiburan, dll)
-4. type: "expense" untuk pengeluaran, "income" untuk pemasukan (gaji, terima uang, dll)
-5. note: catatan tambahan dari pesan
-
-Contoh:
-- "600k BCA buat makan" → {"amount":600000,"wallet":"BCA","category":"Makan","type":"expense","note":"makan"}
-- "Gaji masuk 5jt Mandiri" → {"amount":5000000,"wallet":"Mandiri","category":"Gaji","type":"income","note":"gaji masuk"}
-- "Transport ojol 15rb GoPay" → {"amount":15000,"wallet":"GoPay","category":"Transport","type":"expense","note":"ojol"}
-- "100k Jago Langganan Vidio" → {"amount":100000,"wallet":"Jago","category":"Hiburan","type":"expense","note":"Langganan Vidio"}
-
-PENTING: Balas HANYA dengan JSON valid, tanpa markdown atau teks lain.`;
-
-export async function parseTransaction(message: string, walletNames: string[]): Promise<GeminiResponse> {
+export async function parseTransaction(message: string, walletNames: string[], categoryNames: string[] = []): Promise<GeminiResponse> {
     const apiKey = process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
-        console.error('GEMINI_API_KEY not configured');
-        return { success: false, error: 'API key tidak dikonfigurasi' };
+        return { success: false, error: 'No API key' };
     }
 
-    const walletContext = walletNames.length > 0
-        ? `\n\nDaftar wallet user: ${walletNames.join(', ')}. Gunakan nama wallet yang paling cocok dari daftar ini.`
-        : '';
+    const walletList = walletNames.length > 0 ? walletNames.join(', ') : 'BCA, Mandiri, GoPay, OVO, Dana, Jago';
+    const categoryList = categoryNames.length > 0 ? categoryNames.join(', ') : 'Makan, Transport, Belanja, Gaji, Tagihan, Hiburan, Lainnya';
+
+    const prompt = `Parse request user: "${message}"
+
+Wallet TERSEDIA: ${walletList}
+Kategori TERSEDIA: ${categoryList}
+
+ATURAN:
+- wallet: 
+  - Jika transaksi/transfer: Pilih dari daftar (source).
+  - Jika cek saldo: Pilih wallet yang ingin dicek. Jika tidak sebut wallet, kosongkan.
+- to_wallet: Jika transfer antar wallet, isi dengan wallet TUJUAN.
+- category: Pilih dari daftar untuk transaksi. Kosongkan jika cek saldo.
+  - Langganan/subscription → Tagihan
+  - Gajian → Gaji
+  - Makan/kuliner → Makanan atau Makan
+  - Transfer masuk/terima uang → Transfer Masuk
+  - Transfer keluar/kirim uang -> Transfer Keluar
+- type: 
+  - "transfer" jika ada kata "transfer" DAN menyebutkan 2 wallet (asal & tujuan).
+  - "check_balance" jika tanya "saldo", "cek saldo", "sisa uang", "uang di [wallet]".
+  - "income" jika gaji/gajian/terima/masuk/bonus/transfer masuk (cuma 1 wallet).
+  - "expense" untuk pengeluaran biasa.
+
+Output JSON: {"amount":number,"wallet":"","to_wallet":"","category":"","type":"expense|income|transfer|check_balance","note":""}
+Konversi: rb/k=ribu, jt=juta. Amount 0 jika cek saldo.
+
+HANYA JSON, tanpa penjelasan.`;
 
     try {
-        const requestBody = {
-            contents: [{
-                parts: [{
-                    text: `${SYSTEM_PROMPT}${walletContext}\n\nPesan user: "${message}"`
-                }]
-            }],
-            generationConfig: {
-                temperature: 0.1,
-                maxOutputTokens: 256,
-                response_mime_type: "application/json",
-            }
-        };
-
-        console.log('Calling Gemini API (JSON Mode)...');
-        const response = await fetch(`${GEMINI_API}?key=${apiKey}`, {
+        const res = await fetch(`${GEMINI_API}?key=${apiKey}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(requestBody),
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: { temperature: 0, maxOutputTokens: 1024 }
+            }),
         });
 
-        const responseText = await response.text();
-        console.log('Gemini status:', response.status);
+        const json = await res.json();
 
-        if (!response.ok) {
-            console.error('Gemini API error:', response.status, responseText);
-            return { success: false, error: `API Error ${response.status}` };
+        if (!res.ok) {
+            return { success: false, error: `API ${res.status}` };
         }
 
-        const data = JSON.parse(responseText);
-        let textContent = data.candidates?.[0]?.content?.parts?.[0]?.text;
-
-        if (!textContent) {
-            console.error('No text content in response:', JSON.stringify(data).substring(0, 300));
-            return { success: false, error: 'AI tidak merespons' };
+        // Get all text from all parts
+        const parts = json.candidates?.[0]?.content?.parts || [];
+        let fullText = '';
+        for (const part of parts) {
+            if (part.text) fullText += part.text;
         }
 
-        console.log('Gemini text response:', textContent);
-
-        // AGGRESSIVE JSON EXTRACTION - find JSON anywhere in the text
-        // First try to find content between first { and last }
-        const firstBrace = textContent.indexOf('{');
-        const lastBrace = textContent.lastIndexOf('}');
-
-        if (firstBrace === -1 || lastBrace === -1 || firstBrace >= lastBrace) {
-            console.error('No JSON object found in response:', textContent.substring(0, 200));
-            return { success: false, error: 'AI tidak memberikan format JSON' };
+        if (!fullText) {
+            return { success: false, error: 'Empty' };
         }
 
-        const cleanJson = textContent.substring(firstBrace, lastBrace + 1);
-        console.log('Extracted JSON:', cleanJson);
+        // Clean markdown
+        fullText = fullText.replace(/```json\s*/gi, '').replace(/```/g, '').trim();
 
-        const parsed = JSON.parse(cleanJson) as ParsedTransaction;
+        // Extract JSON using indexOf
+        const start = fullText.indexOf('{');
+        const end = fullText.lastIndexOf('}');
 
-        // Validate required fields
-        if (!parsed.amount || !parsed.wallet || !parsed.category || !parsed.type) {
-            console.error('Incomplete transaction data:', parsed);
-            return { success: false, error: 'Data tidak lengkap dari AI' };
+        if (start === -1 || end === -1 || end <= start) {
+            return { success: false, error: `NoJSON: ${fullText.substring(0, 50)}` };
+        }
+
+        const jsonStr = fullText.substring(start, end + 1);
+        const parsed = JSON.parse(jsonStr) as ParsedTransaction;
+
+        if (parsed.type === 'check_balance') {
+            return { success: true, data: parsed };
+        }
+
+        if (!parsed.amount) {
+            return { success: false, error: 'No amount' };
         }
 
         return { success: true, data: parsed };
-    } catch (error: unknown) {
-        const errMsg = error instanceof Error ? error.message : String(error);
-        console.error('Parse transaction error:', errMsg);
-        // If JSON parse failed, show a snippet of what it tried to parse
-        return { success: false, error: `Parse Fail: ${errMsg.substring(0, 50)}` };
+    } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        return { success: false, error: msg.substring(0, 40) };
     }
 }
+
+
+

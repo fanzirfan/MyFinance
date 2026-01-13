@@ -168,7 +168,11 @@ export default function TransactionsPage() {
                                     {txs.map((tx) => {
                                         const CategoryIcon = getCategoryIcon(tx.category?.name || '');
                                         return (
-                                            <div key={tx.id} className="card p-4 flex items-center gap-4">
+                                            <div
+                                                key={tx.id}
+                                                onClick={() => router.push(`/transactions/${tx.id}`)}
+                                                className="card p-4 flex items-center gap-4 cursor-pointer hover:bg-secondary/30 transition-colors"
+                                            >
                                                 <div
                                                     className={`w-10 h-10 rounded-xl flex items-center justify-center ${tx.category?.type === 'income' ? 'bg-success/20 text-success' : 'bg-danger/20 text-danger'}`}
                                                 >

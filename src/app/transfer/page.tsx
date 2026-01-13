@@ -74,14 +74,18 @@ export default function TransferPage() {
 
         try {
             // 1. Get or Create Categories
+            // 1. Get or Create Categories
+
             // Expense Category (Transfer Keluar)
             let expenseCatId;
             const { data: expCat } = await supabase
                 .from('categories')
                 .select('id')
-                .eq('user_id', user.id)
+                .or(`user_id.eq.${user.id},user_id.is.null`)
                 .eq('type', 'expense')
                 .ilike('name', 'Transfer Keluar')
+                .order('user_id', { ascending: true }) // Prioritize default (NULL)
+                .limit(1)
                 .maybeSingle();
 
             if (expCat) {
@@ -89,7 +93,7 @@ export default function TransferPage() {
             } else {
                 const { data: newExp, error: newExpErr } = await supabase
                     .from('categories')
-                    .insert({ user_id: user.id, name: 'Transfer Keluar', type: 'expense', icon: 'ArrowRightLeft' })
+                    .insert({ user_id: user.id, name: 'Transfer Keluar', type: 'expense', icon: 'ArrowUpRight' })
                     .select()
                     .single();
                 if (!newExpErr && newExp) expenseCatId = newExp.id;
@@ -100,9 +104,11 @@ export default function TransferPage() {
             const { data: incCat } = await supabase
                 .from('categories')
                 .select('id')
-                .eq('user_id', user.id)
+                .or(`user_id.eq.${user.id},user_id.is.null`)
                 .eq('type', 'income')
                 .ilike('name', 'Transfer Masuk')
+                .order('user_id', { ascending: true }) // Prioritize default (NULL)
+                .limit(1)
                 .maybeSingle();
 
             if (incCat) {
@@ -110,7 +116,7 @@ export default function TransferPage() {
             } else {
                 const { data: newInc, error: newIncErr } = await supabase
                     .from('categories')
-                    .insert({ user_id: user.id, name: 'Transfer Masuk', type: 'income', icon: 'ArrowRightLeft' })
+                    .insert({ user_id: user.id, name: 'Transfer Masuk', type: 'income', icon: 'ArrowDownLeft' })
                     .select()
                     .single();
                 if (!newIncErr && newInc) incomeCatId = newInc.id;

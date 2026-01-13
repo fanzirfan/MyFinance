@@ -36,7 +36,9 @@ import {
     Bus,
     Bike,
     LucideIcon,
-    MoreHorizontal
+    MoreHorizontal,
+    ArrowDownLeft,
+    ArrowUpRight
 } from 'lucide-react';
 
 // Category icon mapping
@@ -72,6 +74,7 @@ export const categoryIcons: Record<string, LucideIcon> = {
     'Transportasi Umum': Bus,
     'Sepeda': Bike,
     'Gadget': Smartphone,
+    'Transfer Keluar': ArrowUpRight,
 
     // Income categories
     'Gaji': Briefcase,
@@ -84,6 +87,7 @@ export const categoryIcons: Record<string, LucideIcon> = {
     'Cashback': CreditCard,
     'Bunga': PiggyBank,
     'Dividen': TrendingUp,
+    'Transfer Masuk': ArrowDownLeft,
     'Lainnya': MoreHorizontal,
 };
 

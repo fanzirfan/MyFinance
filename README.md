@@ -28,6 +28,13 @@ MyFinance adalah aplikasi web manajemen keuangan pribadi yang modern, aman, dan 
   - **Simple Math Captcha** pada Login & Register untuk mencegah bot.
   - **Dark Mode** modern dengan aksen warna yang nyaman di mata.
   - Desain **Mobile-First** yang responsif.
+  - **📱 PWA Support**: Install aplikasi ke homescreen HP Anda dan akses secara offline.
+
+- **🤖 Integrasi Telegram Bot (AI Powered)**
+  - Catat transaksi semudah chatting! (contoh: *"Beli nasi goreng 15rb pakai GoPay"*).
+  - **Auto Categorization**: AI otomatis menentukan kategori dan tipe transaksi.
+  - **Cek Saldo Instan**: Tanya saldo kapan saja (contoh: *"Cek saldo BCA"*).
+  - **Transfer via Chat**: Pindahkan saldo antar wallet dengan perintah natural (contoh: *"Transfer 50rb Jago ke SPAY"*).
 
 ## 🚀 Teknologi yang Digunakan
 

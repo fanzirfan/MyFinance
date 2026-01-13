@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.0] - 2026-01-14
+
+### Added
+- **Telegram Bot Integration**:
+  - **Natural Language Processing (NLP)**: Mencatat transaksi dengan bahasa alami (contoh: "Beli kopi 25rb pakai Jago").
+  - **Smart Category Detection**: Otomatis mendeteksi kategori dan tipe (Income/Expense/Transfer) dari teks.
+  - **Auto Transfer**: Mendeteksi perintah transfer antar wallet (contoh: "Transfer 50rb Jago ke SPAY") dan membuat dua transaksi (Pengeluaran & Pemasukan) secara otomatis.
+  - **Cek Saldo**: Fitur cek saldo instan via perintah `/ceksaldo` atau NLP "Cek saldo [wallet]" (Bypass AI Rate Limit).
+- **Transaction Details**: Halaman detail transaksi untuk melihat info lengkap dan **menghapus transaksi** (saldo wallet otomatis dikembalikan).
+- **Manage Categories**: Fitur untuk menghapus kategori custom. Transaksi yang terkait akan otomatis dipindahkan ke kategori "Lainnya" untuk menjaga integritas data.
+
+### Improved
+- **Gemini AI**: Prompt engineering yang lebih canggih untuk akurasi tinggi dan penanganan JSON yang robust.
+- **Transfer Logic**: Sistem transfer kini memprioritaskan penggunaan kategori default ("Transfer Masuk" / "Transfer Keluar") daripada membuat duplikat kategori custom.
+- **Performance**: Optimalisasi webhook Telegram dengan regex pattern matching untuk respon cepat pada perintah umum.
+
 ## [1.2.1] - 2026-01-11
 
 ### Improved

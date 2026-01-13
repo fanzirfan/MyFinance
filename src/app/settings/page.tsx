@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { useRouter } from 'next/navigation';
 import { supabase, TelegramSettings } from '@/lib/supabase';
-import { ArrowLeft, LogOut, User, Trash2, Download, Loader2, Key, Mail, Lock, AlertTriangle, Eye, EyeOff, Monitor, Smartphone, Bot, Copy, Check, RefreshCw, Unlink, ExternalLink } from 'lucide-react';
+import { ArrowLeft, LogOut, User, Trash2, Download, Loader2, Key, Mail, Lock, AlertTriangle, Eye, EyeOff, Monitor, Smartphone, Bot, Copy, Check, RefreshCw, Unlink, ExternalLink, Tag, X } from 'lucide-react';
 import { APP_CONFIG } from '@/lib/config';
 
 function MonitorOrMobile({ ua }: { ua: string }) {
@@ -41,6 +41,13 @@ export default function SettingsPage() {
     const [copied, setCopied] = useState(false);
     const botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || 'MyFinanceBot';
 
+    // Category Management State
+    interface Category { id: string; name: string; type: string; user_id: string | null; }
+    const [categories, setCategories] = useState<Category[]>([]);
+    const [loadingCategories, setLoadingCategories] = useState(true);
+    const [deletingCategoryId, setDeletingCategoryId] = useState<string | null>(null);
+    const [showCategories, setShowCategories] = useState(false);
+
     // Fetch Telegram settings
     useEffect(() => {
         const fetchTelegramSettings = async () => {
@@ -54,7 +61,72 @@ export default function SettingsPage() {
             setLoadingTelegram(false);
         };
         fetchTelegramSettings();
+        fetchCategories();
     }, [user]);
+
+    const fetchCategories = async () => {
+        if (!user) return;
+        const { data } = await supabase
+            .from('categories')
+            .select('*')
+            .eq('user_id', user.id);
+        setCategories(data || []);
+        setLoadingCategories(false);
+    };
+
+    const handleDeleteCategory = async (categoryId: string, categoryName: string, categoryType: string) => {
+        if (!confirm(`Hapus kategori "${categoryName}"? Transaksi dengan kategori ini akan dipindahkan ke "Lainnya".`)) return;
+        setDeletingCategoryId(categoryId);
+        try {
+            // 1. Cari kategori default "Lainnya" dengan tipe yang sama
+            let { data: fallback } = await supabase
+                .from('categories')
+                .select('id')
+                .eq('name', 'Lainnya')
+                .eq('type', categoryType)
+                .is('user_id', null)
+                .maybeSingle();
+
+            // Jika tidak ada "Lainnya", cari kategori default apa saja yang setipe
+            if (!fallback) {
+                const { data: anyDefault } = await supabase
+                    .from('categories')
+                    .select('id')
+                    .eq('type', categoryType)
+                    .is('user_id', null)
+                    .limit(1)
+                    .maybeSingle();
+                fallback = anyDefault;
+            }
+
+            if (fallback) {
+                // 2. Pindahkan transaksi ke kategori default
+                const { error: moveError } = await supabase
+                    .from('transactions')
+                    .update({ category_id: fallback.id })
+                    .eq('category_id', categoryId);
+
+                if (moveError) throw moveError;
+            }
+
+            // 3. Hapus kategori
+            const { error } = await supabase
+                .from('categories')
+                .delete()
+                .eq('id', categoryId)
+                .eq('user_id', user?.id);
+
+            if (error) throw error;
+
+            setCategories(prev => prev.filter(c => c.id !== categoryId));
+            setMessage({ type: 'success', text: 'Kategori berhasil dihapus dan transaksi dipindahkan.' });
+        } catch (err: any) {
+            console.error(err);
+            setMessage({ type: 'error', text: 'Gagal menghapus kategori: ' + err.message });
+        } finally {
+            setDeletingCategoryId(null);
+        }
+    };
 
     const handleGenerateToken = async () => {
         if (!user) return;
@@ -488,6 +560,71 @@ export default function SettingsPage() {
                                     {generatingToken ? <Loader2 className="w-4 h-4 animate-spin" /> : <Key className="w-4 h-4" />}
                                     Generate Secret Key
                                 </button>
+                            )}
+                        </div>
+                    )}
+                </div>
+
+                {/* Category Management */}
+                <div className="card p-6 space-y-4">
+                    <button
+                        onClick={() => setShowCategories(!showCategories)}
+                        className="w-full flex items-center justify-between"
+                    >
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-secondary/30 flex items-center justify-center">
+                                <Tag className="w-5 h-5 text-secondary" />
+                            </div>
+                            <div className="text-left">
+                                <h3 className="font-semibold">Kelola Kategori</h3>
+                                <p className="text-xs text-fore/50">{categories.length} kategori custom</p>
+                            </div>
+                        </div>
+                        <span className="text-xs text-fore/40">{showCategories ? 'Tutup' : 'Lihat'}</span>
+                    </button>
+
+                    {showCategories && (
+                        <div className="space-y-3 pt-4 border-t border-border/50">
+                            {loadingCategories ? (
+                                <div className="flex justify-center py-4">
+                                    <Loader2 className="w-6 h-6 animate-spin text-fore/40" />
+                                </div>
+                            ) : categories.length === 0 ? (
+                                <p className="text-center text-fore/50 py-4 text-sm">
+                                    Tidak ada kategori custom.
+                                    <br />
+                                    <span className="text-xs">Kategori default tidak bisa dihapus.</span>
+                                </p>
+                            ) : (
+                                <>
+                                    <p className="text-xs text-fore/50">Klik tombol hapus untuk menghapus kategori custom:</p>
+                                    <div className="space-y-2 max-h-60 overflow-y-auto">
+                                        {categories.map(cat => (
+                                            <div
+                                                key={cat.id}
+                                                className={`flex items-center justify-between p-3 rounded-xl ${cat.type === 'income' ? 'bg-success/10' : 'bg-danger/10'}`}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <span className={`text-xs px-2 py-0.5 rounded ${cat.type === 'income' ? 'bg-success/20 text-success' : 'bg-danger/20 text-danger'}`}>
+                                                        {cat.type === 'income' ? 'Masuk' : 'Keluar'}
+                                                    </span>
+                                                    <span className="font-medium">{cat.name}</span>
+                                                </div>
+                                                <button
+                                                    onClick={() => handleDeleteCategory(cat.id, cat.name, cat.type)}
+                                                    disabled={deletingCategoryId === cat.id}
+                                                    className="w-8 h-8 rounded-full bg-danger/20 text-danger flex items-center justify-center hover:bg-danger/30 transition-colors disabled:opacity-50"
+                                                >
+                                                    {deletingCategoryId === cat.id ? (
+                                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                                    ) : (
+                                                        <X className="w-4 h-4" />
+                                                    )}
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </>
                             )}
                         </div>
                     )}
