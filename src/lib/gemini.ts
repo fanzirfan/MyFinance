@@ -46,36 +46,40 @@ export async function parseTransaction(message: string, walletNames: string[]): 
         : '';
 
     try {
+        const requestBody = {
+            contents: [{
+                parts: [{
+                    text: `${SYSTEM_PROMPT}${walletContext}\n\nPesan user: "${message}"`
+                }]
+            }],
+            generationConfig: {
+                temperature: 0.1,
+                maxOutputTokens: 256,
+            }
+        };
+
+        console.log('Calling Gemini API...');
         const response = await fetch(`${GEMINI_API}?key=${apiKey}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{
-                    parts: [{
-                        text: `${SYSTEM_PROMPT}${walletContext}\n\nPesan user: "${message}"`
-                    }]
-                }],
-                generationConfig: {
-                    temperature: 0.1,
-                    maxOutputTokens: 256,
-                }
-            }),
+            body: JSON.stringify(requestBody),
         });
 
         const responseText = await response.text();
-        console.log('Gemini raw response:', responseText);
+        console.log('Gemini status:', response.status);
+        console.log('Gemini raw response:', responseText.substring(0, 500));
 
         if (!response.ok) {
             console.error('Gemini API error:', response.status, responseText);
-            return { success: false, error: 'Gagal menghubungi AI' };
+            return { success: false, error: `API Error ${response.status}` };
         }
 
         const data = JSON.parse(responseText);
         const textContent = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
         if (!textContent) {
-            console.error('No text content in response:', data);
-            return { success: false, error: 'Tidak ada respons dari AI' };
+            console.error('No text content in response:', JSON.stringify(data).substring(0, 300));
+            return { success: false, error: 'AI tidak merespons' };
         }
 
         console.log('Gemini text response:', textContent);
@@ -91,12 +95,13 @@ export async function parseTransaction(message: string, walletNames: string[]): 
         // Validate required fields
         if (!parsed.amount || !parsed.wallet || !parsed.category || !parsed.type) {
             console.error('Incomplete transaction data:', parsed);
-            return { success: false, error: 'Data transaksi tidak lengkap' };
+            return { success: false, error: 'Data tidak lengkap dari AI' };
         }
 
         return { success: true, data: parsed };
-    } catch (error) {
-        console.error('Failed to parse transaction:', error);
-        return { success: false, error: 'Gagal memahami pesan. Coba format: "50rb BCA makan"' };
+    } catch (error: unknown) {
+        const errMsg = error instanceof Error ? error.message : String(error);
+        console.error('Parse transaction error:', errMsg);
+        return { success: false, error: `Error: ${errMsg.substring(0, 50)}` };
     }
 }
