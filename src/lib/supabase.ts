@@ -37,8 +37,20 @@ export type Transaction = {
     amount: number;
     date: string;
     note: string | null;
+    source: 'web' | 'telegram';
     created_at: string;
     // Joined fields
     wallet?: Wallet;
     category?: Category;
+};
+
+export type TelegramSettings = {
+    id: string;
+    user_id: string;
+    connection_token: string | null;
+    telegram_user_id: number | null;
+    telegram_username: string | null;
+    is_connected: boolean;
+    created_at: string;
+    updated_at: string;
 };

@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
-import { ArrowLeft, LogOut, User, Trash2, Download, Loader2, Key, Mail, Lock, AlertTriangle, Eye, EyeOff, Monitor, Smartphone } from 'lucide-react';
+import { supabase, TelegramSettings } from '@/lib/supabase';
+import { ArrowLeft, LogOut, User, Trash2, Download, Loader2, Key, Mail, Lock, AlertTriangle, Eye, EyeOff, Monitor, Smartphone, Bot, Copy, Check, RefreshCw, Unlink, ExternalLink } from 'lucide-react';
 import { APP_CONFIG } from '@/lib/config';
 
 function MonitorOrMobile({ ua }: { ua: string }) {
@@ -32,6 +32,76 @@ export default function SettingsPage() {
 
     // Feedback
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+
+    // Telegram Bot State
+    const [telegramSettings, setTelegramSettings] = useState<TelegramSettings | null>(null);
+    const [loadingTelegram, setLoadingTelegram] = useState(true);
+    const [generatingToken, setGeneratingToken] = useState(false);
+    const [disconnecting, setDisconnecting] = useState(false);
+    const [copied, setCopied] = useState(false);
+    const botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || 'MyFinanceBot';
+
+    // Fetch Telegram settings
+    useEffect(() => {
+        const fetchTelegramSettings = async () => {
+            if (!user) return;
+            const { data } = await supabase
+                .from('telegram_settings')
+                .select('*')
+                .eq('user_id', user.id)
+                .single();
+            setTelegramSettings(data);
+            setLoadingTelegram(false);
+        };
+        fetchTelegramSettings();
+    }, [user]);
+
+    const handleGenerateToken = async () => {
+        if (!user) return;
+        setGeneratingToken(true);
+        try {
+            const res = await fetch('/api/telegram/token', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: user.id }),
+            });
+            const data = await res.json();
+            if (data.settings) {
+                setTelegramSettings(data.settings);
+                setMessage({ type: 'success', text: 'Secret key berhasil dibuat!' });
+            }
+        } catch (error) {
+            setMessage({ type: 'error', text: 'Gagal membuat secret key' });
+        } finally {
+            setGeneratingToken(false);
+        }
+    };
+
+    const handleDisconnectTelegram = async () => {
+        if (!user || !confirm('Putuskan koneksi Telegram?')) return;
+        setDisconnecting(true);
+        try {
+            const res = await fetch('/api/telegram/token', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: user.id }),
+            });
+            if (res.ok) {
+                setTelegramSettings(prev => prev ? { ...prev, is_connected: false, telegram_user_id: null, telegram_username: null } : null);
+                setMessage({ type: 'success', text: 'Telegram berhasil diputus' });
+            }
+        } catch (error) {
+            setMessage({ type: 'error', text: 'Gagal memutus koneksi' });
+        } finally {
+            setDisconnecting(false);
+        }
+    };
+
+    const copyToClipboard = (text: string) => {
+        navigator.clipboard.writeText(text);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
 
     const handleExportData = async () => {
         if (!user) return;
@@ -324,6 +394,103 @@ export default function SettingsPage() {
                         )}
                         <span>{exporting ? 'Mengekspor...' : 'Ekspor Data CSV'}</span>
                     </button>
+                </div>
+
+                {/* Telegram Bot Integration */}
+                <div className="card p-6 space-y-4">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-[#0088cc]/20 flex items-center justify-center">
+                            <Bot className="w-5 h-5 text-[#0088cc]" />
+                        </div>
+                        <div>
+                            <h3 className="font-semibold">Telegram Bot</h3>
+                            <p className="text-xs text-fore/50">Catat transaksi via chat</p>
+                        </div>
+                    </div>
+
+                    {loadingTelegram ? (
+                        <div className="flex justify-center py-4">
+                            <Loader2 className="w-6 h-6 animate-spin text-fore/40" />
+                        </div>
+                    ) : telegramSettings?.is_connected ? (
+                        /* Connected State */
+                        <div className="space-y-4">
+                            <div className="bg-success/10 border border-success/30 rounded-xl p-4">
+                                <div className="flex items-center gap-2 text-success mb-2">
+                                    <Check className="w-4 h-4" />
+                                    <span className="font-medium text-sm">Terhubung</span>
+                                </div>
+                                <p className="text-sm text-fore/70">
+                                    @{telegramSettings.telegram_username || telegramSettings.telegram_user_id}
+                                </p>
+                            </div>
+
+                            <button
+                                onClick={handleDisconnectTelegram}
+                                disabled={disconnecting}
+                                className="w-full py-2 px-4 rounded-lg bg-danger/10 text-danger text-sm font-medium hover:bg-danger/20 transition-colors flex items-center justify-center gap-2"
+                            >
+                                {disconnecting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Unlink className="w-4 h-4" />}
+                                Putuskan Koneksi
+                            </button>
+                        </div>
+                    ) : (
+                        /* Not Connected State */
+                        <div className="space-y-4">
+                            {telegramSettings?.connection_token ? (
+                                <div className="space-y-3">
+                                    <label className="text-sm font-medium text-fore/70">Secret Key</label>
+                                    <div className="flex gap-2">
+                                        <div className="flex-1 bg-background/50 border border-border rounded-lg px-4 py-3 font-mono text-sm truncate">
+                                            {telegramSettings.connection_token}
+                                        </div>
+                                        <button
+                                            onClick={() => copyToClipboard(telegramSettings.connection_token!)}
+                                            className="px-3 rounded-lg bg-primary/50 hover:bg-primary/70 transition-colors"
+                                        >
+                                            {copied ? <Check className="w-4 h-4 text-success" /> : <Copy className="w-4 h-4" />}
+                                        </button>
+                                    </div>
+
+                                    <div className="bg-background/50 rounded-xl p-4 text-sm space-y-2">
+                                        <p className="font-medium">Cara menghubungkan:</p>
+                                        <ol className="list-decimal list-inside text-fore/60 space-y-1">
+                                            <li>Buka bot <a href={`https://t.me/${botUsername}`} target="_blank" className="text-[#0088cc] hover:underline">@{botUsername}</a></li>
+                                            <li>Ketik: <code className="bg-primary/30 px-1 rounded">/start {telegramSettings.connection_token}</code></li>
+                                        </ol>
+                                    </div>
+
+                                    <div className="flex gap-2">
+                                        <a
+                                            href={`https://t.me/${botUsername}?start=${telegramSettings.connection_token}`}
+                                            target="_blank"
+                                            className="flex-1 btn btn-primary flex items-center justify-center gap-2"
+                                        >
+                                            <ExternalLink className="w-4 h-4" />
+                                            Buka Bot
+                                        </a>
+                                        <button
+                                            onClick={handleGenerateToken}
+                                            disabled={generatingToken}
+                                            className="px-4 rounded-xl bg-background-secondary border border-border hover:bg-primary/20 transition-colors"
+                                            title="Generate ulang secret key"
+                                        >
+                                            {generatingToken ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <button
+                                    onClick={handleGenerateToken}
+                                    disabled={generatingToken}
+                                    className="btn btn-primary w-full flex items-center justify-center gap-2"
+                                >
+                                    {generatingToken ? <Loader2 className="w-4 h-4 animate-spin" /> : <Key className="w-4 h-4" />}
+                                    Generate Secret Key
+                                </button>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 <div className="card overflow-hidden border-danger/20">
