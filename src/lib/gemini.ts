@@ -84,24 +84,18 @@ export async function parseTransaction(message: string, walletNames: string[]): 
 
         console.log('Gemini text response:', textContent);
 
-        // Improved Clean Logic
-        let cleanJson = textContent.trim();
+        // AGGRESSIVE JSON EXTRACTION - find JSON anywhere in the text
+        // First try to find content between first { and last }
+        const firstBrace = textContent.indexOf('{');
+        const lastBrace = textContent.lastIndexOf('}');
 
-        // Remove markdown blocks if AI ignored the mime_type restriction
-        if (cleanJson.includes('```')) {
-            const matches = cleanJson.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-            if (matches && matches[1]) {
-                cleanJson = matches[1].trim();
-            } else {
-                cleanJson = cleanJson.replace(/```json?\n?/g, '').replace(/```/g, '').trim();
-            }
+        if (firstBrace === -1 || lastBrace === -1 || firstBrace >= lastBrace) {
+            console.error('No JSON object found in response:', textContent.substring(0, 200));
+            return { success: false, error: 'AI tidak memberikan format JSON' };
         }
 
-        // Final safety: extract only what's between { and }
-        const braceMatch = cleanJson.match(/\{[\s\S]*\}/);
-        if (braceMatch) {
-            cleanJson = braceMatch[0];
-        }
+        const cleanJson = textContent.substring(firstBrace, lastBrace + 1);
+        console.log('Extracted JSON:', cleanJson);
 
         const parsed = JSON.parse(cleanJson) as ParsedTransaction;
 
