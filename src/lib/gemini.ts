@@ -55,10 +55,11 @@ export async function parseTransaction(message: string, walletNames: string[]): 
             generationConfig: {
                 temperature: 0.1,
                 maxOutputTokens: 256,
+                response_mime_type: "application/json",
             }
         };
 
-        console.log('Calling Gemini API...');
+        console.log('Calling Gemini API (JSON Mode)...');
         const response = await fetch(`${GEMINI_API}?key=${apiKey}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -67,7 +68,6 @@ export async function parseTransaction(message: string, walletNames: string[]): 
 
         const responseText = await response.text();
         console.log('Gemini status:', response.status);
-        console.log('Gemini raw response:', responseText.substring(0, 500));
 
         if (!response.ok) {
             console.error('Gemini API error:', response.status, responseText);
@@ -75,7 +75,7 @@ export async function parseTransaction(message: string, walletNames: string[]): 
         }
 
         const data = JSON.parse(responseText);
-        const textContent = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        let textContent = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
         if (!textContent) {
             console.error('No text content in response:', JSON.stringify(data).substring(0, 300));
@@ -84,10 +84,23 @@ export async function parseTransaction(message: string, walletNames: string[]): 
 
         console.log('Gemini text response:', textContent);
 
-        // Clean the response - remove markdown code blocks if present
+        // Improved Clean Logic
         let cleanJson = textContent.trim();
-        if (cleanJson.startsWith('```')) {
-            cleanJson = cleanJson.replace(/```json?\n?/g, '').replace(/```/g, '').trim();
+
+        // Remove markdown blocks if AI ignored the mime_type restriction
+        if (cleanJson.includes('```')) {
+            const matches = cleanJson.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+            if (matches && matches[1]) {
+                cleanJson = matches[1].trim();
+            } else {
+                cleanJson = cleanJson.replace(/```json?\n?/g, '').replace(/```/g, '').trim();
+            }
+        }
+
+        // Final safety: extract only what's between { and }
+        const braceMatch = cleanJson.match(/\{[\s\S]*\}/);
+        if (braceMatch) {
+            cleanJson = braceMatch[0];
         }
 
         const parsed = JSON.parse(cleanJson) as ParsedTransaction;
@@ -102,6 +115,7 @@ export async function parseTransaction(message: string, walletNames: string[]): 
     } catch (error: unknown) {
         const errMsg = error instanceof Error ? error.message : String(error);
         console.error('Parse transaction error:', errMsg);
-        return { success: false, error: `Error: ${errMsg.substring(0, 50)}` };
+        // If JSON parse failed, show a snippet of what it tried to parse
+        return { success: false, error: `Parse Fail: ${errMsg.substring(0, 50)}` };
     }
 }
