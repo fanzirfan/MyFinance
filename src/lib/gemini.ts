@@ -12,7 +12,7 @@ export interface GeminiResponse {
     error?: string;
 }
 
-const GEMINI_API = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+const GEMINI_API = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent';
 
 const SYSTEM_PROMPT = `Kamu adalah asisten keuangan yang mengekstrak informasi transaksi dari pesan bahasa Indonesia.
 
