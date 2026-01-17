@@ -5,19 +5,12 @@ import { supabase, Transaction, Wallet, Category } from '@/lib/supabase';
 import { useAuth } from '@/components/AuthProvider';
 import { useRouter } from 'next/navigation';
 import {
-    Plus,
     TrendingUp,
     TrendingDown,
-    Wallet as WalletIcon,
-    Settings,
-    LogOut,
-    RefreshCw,
-    ArrowRightLeft,
-    WalletCards
+    Wallet as WalletIcon
 } from 'lucide-react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { getCategoryIcon } from '@/lib/categoryIcons';
-import { APP_CONFIG } from '@/lib/config';
+import BottomNav from '@/components/BottomNav';
 
 const EXPENSE_COLORS = ['#EF4444', '#F97316', '#EC4899', '#8B5CF6', '#E11D48', '#DC2626'];
 const INCOME_COLORS = ['#10B981', '#22C55E', '#14B8A6', '#34D399', '#059669', '#047857'];
@@ -25,12 +18,11 @@ const INCOME_COLORS = ['#10B981', '#22C55E', '#14B8A6', '#34D399', '#059669', '#
 type Period = 'week' | 'month' | 'year';
 
 export default function DashboardPage() {
-    const { user, wallets, signOut } = useAuth();
+    const { user, wallets } = useAuth();
     const router = useRouter();
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
     const [loading, setLoading] = useState(true);
-    const [refreshing, setRefreshing] = useState(false);
     const [period, setPeriod] = useState<Period>('month');
     const [selectedWalletId, setSelectedWalletId] = useState<string>('all');
 
@@ -109,18 +101,12 @@ export default function DashboardPage() {
             if (catData) setCategories(catData);
         } finally {
             setLoading(false);
-            setRefreshing(false);
         }
     };
 
     useEffect(() => {
         fetchData();
     }, [user]);
-
-    const handleRefresh = () => {
-        setRefreshing(true);
-        fetchData();
-    };
 
     // Calculate expense category breakdown for chart (filtered)
     const expenseBreakdown = filteredTransactions
@@ -193,20 +179,6 @@ export default function DashboardPage() {
                         </p>
                         <p className="text-fore/60 text-sm">{getGreeting()}</p>
                     </div>
-                    <div className="flex gap-2">
-                        <button
-                            onClick={handleRefresh}
-                            className="w-10 h-10 rounded-full bg-background-secondary border border-border flex items-center justify-center"
-                        >
-                            <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
-                        </button>
-                        <button
-                            onClick={() => router.push('/settings')}
-                            className="w-10 h-10 rounded-full bg-background-secondary border border-border flex items-center justify-center"
-                        >
-                            <Settings className="w-5 h-5" />
-                        </button>
-                    </div>
                 </div>
 
                 {/* Balance Card */}
@@ -219,18 +191,18 @@ export default function DashboardPage() {
                 <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-2">
                     <button
                         onClick={() => setSelectedWalletId('all')}
-                        className={`flex-shrink-0 px-4 py-2 rounded-full border transition-all ${selectedWalletId === 'all'
+                        className={`flex-shrink-0 px-4 py-3 rounded-full border transition-all min-h-[44px] ${selectedWalletId === 'all'
                             ? 'bg-primary text-white border-primary'
                             : 'bg-background-secondary border-border text-fore/60'
                             }`}
                     >
                         Semua
                     </button>
-                    {wallets.map((wallet) => (
+                {wallets.map((wallet) => (
                         <button
                             key={wallet.id}
                             onClick={() => setSelectedWalletId(wallet.id)}
-                            className={`flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-full border transition-all ${selectedWalletId === wallet.id
+                            className={`flex-shrink-0 flex items-center gap-2 px-4 py-3 rounded-full border transition-all min-h-[44px] ${selectedWalletId === wallet.id
                                 ? 'bg-secondary/20 border-secondary'
                                 : 'bg-background-secondary border-border'
                                 }`}
@@ -246,188 +218,76 @@ export default function DashboardPage() {
                             </span>
                         </button>
                     ))}
-                    <button
-                        onClick={() => router.push('/wallets/new')}
-                        className="flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-full border border-dashed border-border text-fore/60"
-                    >
-                        <Plus className="w-4 h-4" />
-                        <span className="whitespace-nowrap">Tambah</span>
-                    </button>
                 </div>
 
-                {/* Quick Actions */}
-                <div className="grid grid-cols-2 gap-3 mt-4">
-                    <button
-                        onClick={() => router.push('/transfer')}
-                        className="card p-3 flex items-center justify-center gap-2 hover:bg-background-secondary transition-colors"
-                    >
-                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                            <ArrowRightLeft className="w-4 h-4" />
-                        </div>
-                        <span className="font-semibold text-sm">Transfer</span>
-                    </button>
-                    <button
-                        onClick={() => router.push('/wallets')}
-                        className="card p-3 flex items-center justify-center gap-2 hover:bg-background-secondary transition-colors"
-                    >
-                        <div className="w-8 h-8 rounded-full bg-secondary/10 flex items-center justify-center text-secondary">
-                            <WalletCards className="w-4 h-4" />
-                        </div>
-                        <span className="font-semibold text-sm">Kelola Wallet</span>
-                    </button>
-                </div>
             </header>
 
-            {/* Period Filter */}
-            <section className="px-6 mb-4">
-                <div className="flex gap-2 p-1 bg-background-secondary rounded-xl">
-                    <button
-                        onClick={() => setPeriod('week')}
-                        className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${period === 'week'
-                            ? 'bg-primary text-white'
-                            : 'text-fore/60 hover:text-fore'
-                            }`}
-                    >
-                        Minggu
-                    </button>
-                    <button
-                        onClick={() => setPeriod('month')}
-                        className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${period === 'month'
-                            ? 'bg-primary text-white'
-                            : 'text-fore/60 hover:text-fore'
-                            }`}
-                    >
-                        Bulan
-                    </button>
-                    <button
-                        onClick={() => setPeriod('year')}
-                        className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${period === 'year'
-                            ? 'bg-primary text-white'
-                            : 'text-fore/60 hover:text-fore'
-                            }`}
-                    >
-                        Tahun
-                    </button>
-                </div>
-            </section>
-
-            {/* Chart Section */}
+            {/* Summary Card - Ringkasan Periode */}
             <section className="px-6 mb-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Expense Chart */}
-                    {expenseChartData.length > 0 && (
-                        <div className="card p-4">
-                            <div className="flex items-center gap-2 mb-4">
-                                <TrendingDown className="w-5 h-5 text-danger" />
-                                <h2 className="font-semibold">Pengeluaran</h2>
-                            </div>
-                            <div className="h-40">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <PieChart>
-                                        <Pie
-                                            data={expenseChartData}
-                                            cx="50%"
-                                            cy="50%"
-                                            innerRadius={40}
-                                            outerRadius={60}
-                                            paddingAngle={3}
-                                            dataKey="value"
-                                        >
-                                            {expenseChartData.map((_, index) => (
-                                                <Cell key={`expense-${index}`} fill={EXPENSE_COLORS[index % EXPENSE_COLORS.length]} />
-                                            ))}
-                                        </Pie>
-                                        <Tooltip
-                                            formatter={(value: any) => formatCurrency(Number(value))}
-                                            contentStyle={{
-                                                backgroundColor: '#1c1c1f',
-                                                border: '1px solid #3f3f46',
-                                                borderRadius: '8px',
-                                                color: '#f5f5f7'
-                                            }}
-                                            itemStyle={{ color: '#f5f5f7' }}
-                                            labelStyle={{ color: '#a1a1aa' }}
-                                        />
-                                    </PieChart>
-                                </ResponsiveContainer>
-                            </div>
-                            <p className="text-center text-danger font-bold text-lg mb-2">
-                                {formatCurrency(totalExpense)}
-                            </p>
-                            <div className="flex flex-wrap gap-2">
-                                {expenseChartData.slice(0, 4).map((item, index) => (
-                                    <div key={item.name} className="flex items-center gap-1 text-xs">
-                                        <div
-                                            className="w-2 h-2 rounded-full"
-                                            style={{ backgroundColor: EXPENSE_COLORS[index % EXPENSE_COLORS.length] }}
-                                        />
-                                        <span className="text-fore/70">{item.name}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
+                <div className="card p-4">
+                    {/* Period Filter - Inline */}
+                    <div className="flex gap-1 p-1 bg-background rounded-lg mb-4">
+                        <button
+                            onClick={() => setPeriod('week')}
+                            className={`flex-1 py-1.5 px-3 rounded-md text-xs font-medium transition-all ${period === 'week'
+                                ? 'bg-primary text-white'
+                                : 'text-fore/60 hover:text-fore'
+                                }`}
+                        >
+                            Minggu
+                        </button>
+                        <button
+                            onClick={() => setPeriod('month')}
+                            className={`flex-1 py-1.5 px-3 rounded-md text-xs font-medium transition-all ${period === 'month'
+                                ? 'bg-primary text-white'
+                                : 'text-fore/60 hover:text-fore'
+                                }`}
+                        >
+                            Bulan
+                        </button>
+                        <button
+                            onClick={() => setPeriod('year')}
+                            className={`flex-1 py-1.5 px-3 rounded-md text-xs font-medium transition-all ${period === 'year'
+                                ? 'bg-primary text-white'
+                                : 'text-fore/60 hover:text-fore'
+                                }`}
+                        >
+                            Tahun
+                        </button>
+                    </div>
 
-                    {/* Income Chart */}
-                    {incomeChartData.length > 0 && (
-                        <div className="card p-4">
-                            <div className="flex items-center gap-2 mb-4">
-                                <TrendingUp className="w-5 h-5 text-success" />
-                                <h2 className="font-semibold">Pemasukan</h2>
+                    {/* Income vs Expense Summary */}
+                    <div className="grid grid-cols-2 gap-4">
+                        {/* Income */}
+                        <div className="text-center p-3 rounded-xl bg-success/10">
+                            <div className="flex items-center justify-center gap-1.5 mb-1">
+                                <TrendingUp className="w-4 h-4 text-success" />
+                                <span className="text-xs text-fore/60">Pemasukan</span>
                             </div>
-                            <div className="h-40">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <PieChart>
-                                        <Pie
-                                            data={incomeChartData}
-                                            cx="50%"
-                                            cy="50%"
-                                            innerRadius={40}
-                                            outerRadius={60}
-                                            paddingAngle={3}
-                                            dataKey="value"
-                                        >
-                                            {incomeChartData.map((_, index) => (
-                                                <Cell key={`income-${index}`} fill={INCOME_COLORS[index % INCOME_COLORS.length]} />
-                                            ))}
-                                        </Pie>
-                                        <Tooltip
-                                            formatter={(value: any) => formatCurrency(Number(value))}
-                                            contentStyle={{
-                                                backgroundColor: '#1c1c1f',
-                                                border: '1px solid #3f3f46',
-                                                borderRadius: '8px',
-                                                color: '#f5f5f7'
-                                            }}
-                                            itemStyle={{ color: '#f5f5f7' }}
-                                            labelStyle={{ color: '#a1a1aa' }}
-                                        />
-                                    </PieChart>
-                                </ResponsiveContainer>
-                            </div>
-                            <p className="text-center text-success font-bold text-lg mb-2">
-                                {formatCurrency(totalIncome)}
+                            <p className="text-success font-bold text-lg">
+                                +{formatCurrency(totalIncome)}
                             </p>
-                            <div className="flex flex-wrap gap-2">
-                                {incomeChartData.slice(0, 4).map((item, index) => (
-                                    <div key={item.name} className="flex items-center gap-1 text-xs">
-                                        <div
-                                            className="w-2 h-2 rounded-full"
-                                            style={{ backgroundColor: INCOME_COLORS[index % INCOME_COLORS.length] }}
-                                        />
-                                        <span className="text-fore/70">{item.name}</span>
-                                    </div>
-                                ))}
-                            </div>
                         </div>
-                    )}
 
-                    {/* Empty state if no charts */}
-                    {expenseChartData.length === 0 && incomeChartData.length === 0 && (
-                        <div className="card p-6 text-center col-span-full">
-                            <p className="text-fore/60">Belum ada data transaksi untuk chart</p>
+                        {/* Expense */}
+                        <div className="text-center p-3 rounded-xl bg-danger/10">
+                            <div className="flex items-center justify-center gap-1.5 mb-1">
+                                <TrendingDown className="w-4 h-4 text-danger" />
+                                <span className="text-xs text-fore/60">Pengeluaran</span>
+                            </div>
+                            <p className="text-danger font-bold text-lg">
+                                -{formatCurrency(totalExpense)}
+                            </p>
                         </div>
-                    )}
+                    </div>
+
+                    {/* Net Balance for Period */}
+                    <div className="mt-4 pt-3 border-t border-border text-center">
+                        <span className="text-xs text-fore/50">Selisih Periode Ini</span>
+                        <p className={`font-bold text-xl ${totalIncome - totalExpense >= 0 ? 'text-success' : 'text-danger'}`}>
+                            {totalIncome - totalExpense >= 0 ? '+' : ''}{formatCurrency(totalIncome - totalExpense)}
+                        </p>
+                    </div>
                 </div>
             </section>
 
@@ -499,19 +359,8 @@ export default function DashboardPage() {
                 )}
             </section>
 
-            {/* Floating Action Button */}
-            <button
-                onClick={() => router.push('/transactions/new')}
-                className="fixed bottom-6 right-6 w-16 h-16 rounded-full bg-secondary flex items-center justify-center shadow-lg hover:bg-secondary/90 transition-all hover:scale-105 active:scale-95"
-            >
-                <Plus className="w-8 h-8" />
-            </button>
-            {/* Footer */}
-            {/* Footer */}
-            <footer className="mt-8 pt-8 pb-20 text-center text-fore/40 text-xs border-t border-muted mx-6">
-                <p>&copy; {APP_CONFIG.year} {APP_CONFIG.name} v{APP_CONFIG.version}</p>
-                <p className="mt-1">Created by {APP_CONFIG.author}</p>
-            </footer>
+            {/* Bottom Navigation */}
+            <BottomNav />
         </div>
     );
 }

@@ -12,6 +12,7 @@ import {
     Calendar
 } from 'lucide-react';
 import { getCategoryIcon } from '@/lib/categoryIcons';
+import BottomNav from '@/components/BottomNav';
 
 export default function TransactionsPage() {
     const { user, wallets } = useAuth();
@@ -86,16 +87,8 @@ export default function TransactionsPage() {
     return (
         <div className="min-h-screen pb-24">
             {/* Header */}
-            <header className="px-4 pt-12 pb-6">
-                <div className="flex items-center gap-4 mb-6">
-                    <button
-                        onClick={() => router.push('/dashboard')}
-                        className="w-10 h-10 rounded-full bg-primary/50 flex items-center justify-center"
-                    >
-                        <ArrowLeft className="w-5 h-5" />
-                    </button>
-                    <h1 className="text-xl font-bold">Semua Transaksi</h1>
-                </div>
+            <header className="px-4 pt-8 pb-6">
+                <h1 className="text-xl font-bold mb-4">Semua Transaksi</h1>
 
                 {/* Filter Tabs */}
                 <div className="flex gap-2">
@@ -212,6 +205,9 @@ export default function TransactionsPage() {
                     )
                 }
             </div >
+
+            {/* Bottom Navigation */}
+            <BottomNav />
         </div >
     );
 }

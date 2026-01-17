@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { ArrowLeft, Plus, Pencil, Trash2, Wallet as WalletIcon, MoreVertical } from 'lucide-react';
 import { useState } from 'react';
 import Link from 'next/link';
+import BottomNav from '@/components/BottomNav';
 
 export default function ManageWalletsPage() {
     const { wallets, refreshWallets } = useAuth();
@@ -32,14 +33,9 @@ export default function ManageWalletsPage() {
     };
 
     return (
-        <div className="min-h-screen pb-20 bg-background">
+        <div className="min-h-screen pb-24 bg-background">
             <header className="px-4 py-4 flex items-center justify-between border-b border-border bg-background/50 backdrop-blur sticky top-0 z-10">
-                <div className="flex items-center gap-4">
-                    <button onClick={() => router.push('/dashboard')} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-background-secondary transition-all active:scale-95">
-                        <ArrowLeft className="w-6 h-6" />
-                    </button>
-                    <h1 className="text-xl font-bold">Kelola Wallet</h1>
-                </div>
+                <h1 className="text-xl font-bold">Kelola Wallet</h1>
                 <Link href="/wallets/new" className="w-10 h-10 flex items-center justify-center bg-primary/10 text-primary rounded-full hover:bg-primary/20 transition-all active:scale-95">
                     <Plus className="w-6 h-6" />
                 </Link>
@@ -89,6 +85,9 @@ export default function ManageWalletsPage() {
                     ))
                 )}
             </main>
+
+            {/* Bottom Navigation */}
+            <BottomNav />
         </div>
     );
 }

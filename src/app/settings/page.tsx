@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { supabase, TelegramSettings } from '@/lib/supabase';
 import { ArrowLeft, LogOut, User, Trash2, Download, Loader2, Key, Mail, Lock, AlertTriangle, Eye, EyeOff, Monitor, Smartphone, Bot, Copy, Check, RefreshCw, Unlink, ExternalLink, Tag, X } from 'lucide-react';
 import { APP_CONFIG } from '@/lib/config';
+import BottomNav from '@/components/BottomNav';
 
 function MonitorOrMobile({ ua }: { ua: string }) {
     if (ua.indexOf("Mobi") > -1) return <Smartphone className="w-5 h-5 text-primary" />;
@@ -302,10 +303,7 @@ export default function SettingsPage() {
 
     return (
         <div className="min-h-screen pb-24">
-            <header className="px-4 pt-12 pb-6 flex items-center gap-4">
-                <button onClick={() => router.push('/dashboard')} className="w-10 h-10 rounded-full bg-primary/50 flex items-center justify-center">
-                    <ArrowLeft className="w-5 h-5" />
-                </button>
+            <header className="px-4 pt-8 pb-6">
                 <h1 className="text-xl font-bold">Pengaturan</h1>
             </header>
 
@@ -656,6 +654,9 @@ export default function SettingsPage() {
                     {APP_CONFIG.name} v{APP_CONFIG.version}
                 </p>
             </div>
+
+            {/* Bottom Navigation */}
+            <BottomNav />
         </div>
     );
 }
