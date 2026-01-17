@@ -13,6 +13,28 @@ export const metadata: Metadata = {
     statusBarStyle: "black-translucent",
     title: "MyFinance",
   },
+  openGraph: {
+    title: "MyFinance - Personal Finance Tracker",
+    description: "Track your income and expenses with ease. Manage multiple wallets and visualize your spending habits.",
+    url: "https://myfinance.app",
+    siteName: "MyFinance",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "MyFinance Apilcation Preview",
+      },
+    ],
+    locale: "id_ID",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "MyFinance - Personal Finance Tracker",
+    description: "Track your income and expenses with ease.",
+    images: ["/og-image.png"],
+  },
 };
 
 export const viewport: Viewport = {
